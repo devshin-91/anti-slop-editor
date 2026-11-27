@@ -2,7 +2,7 @@
 
 **Research-grounded Antigravity Agent Skill and zero-dependency Python verification engine that removes AI slop (AI투, 번역투, AI臭さ, AI味, structural/RLHF tells, and invisible Unicode artifacts) across Korean, English, Japanese, and Chinese (Simplified & Traditional) without breaking facts, numbers, citations, register, or personal voice.**
 
-Built from primary-source verification across **31+ open-source repositories**, **31 API-verified academic papers**, **Wikipedia `WP:AISIGNS`**, and 4-language editorial fieldwork, then validated with **19/19 automated unit & CLI tests** and live dogfooding on its own 44,000-character research encyclopedia (`Slop Score 56 -> 0`, `change_rate 0.8%`, `length_ratio 99.8%`).
+Built from primary-source verification across **31+ open-source repositories**, **31 API-verified academic papers**, **Wikipedia `WP:AISIGNS`**, and 4-language editorial fieldwork, then validated with **20/20 automated unit & CLI tests** (including universal UTF-8/UTF-16/UTF-32 stdin & file decoding under Windows CP949 locales) and live dogfooding on its own 44,000-character research encyclopedia (`Slop Score 56 -> 0`, `change_rate 0.8%`, `length_ratio 99.8%`).
 
 ---
 
@@ -52,7 +52,7 @@ anti-slop-editor/
 │       │   └── voice-persona-template.md          # User writing-sample DNA distillation template
 │       └── scripts/
 │           ├── slop_engine.py                     # Zero-dep Python stdlib CLI (scan/clean-unicode/verify/diff-report)
-│           └── test_slop_engine.py                # 19 unit, false-positive, gate, and CLI E2E tests
+│           └── test_slop_engine.py                # 20 unit, false-positive, Unicode I/O, gate, and CLI E2E tests
 └── docs/
     ├── ai_slop_removal_encyclopedia.md            # 4-language research encyclopedia (7-layer stack, 31 papers, 31+ repos)
     └── dogfood_diff_report.md                     # Live dogfooding metrics & numbered revision report (56 -> 0)
@@ -74,7 +74,7 @@ Once installed, natural requests such as `"이 글에서 AI투랑 번역투 빼�
 ## CLI & Verification Tests
 
 ```bash
-# 1. Run all 19 automated unit & CLI tests (Python 3 stdlib only)
+# 1. Run all 20 automated unit & CLI tests (Python 3 stdlib only)
 python -B skill/anti-slop-editor/scripts/test_slop_engine.py -v
 
 # 2. Pre-scan a draft
@@ -96,7 +96,7 @@ python -B skill/anti-slop-editor/scripts/slop_engine.py diff-report --before dra
 
 | Check | Result |
 | :--- | :--- |
-| Automated Test Suite (`test_slop_engine.py`) | **19 / 19 OK** (`0.976s`, covering 4-language detection, Korean literal-context false-positive immunity, single-metric comma-rate immunity, Chinese X-tier immunity, protected zones, emoji ZWJ preservation, all 7 verify gates, and 4 CLI subcommands) |
+| Automated Test Suite (`test_slop_engine.py`) | **20 / 20 OK** (`covering 4-language detection, Korean literal-context false-positive immunity, single-metric comma-rate immunity, Chinese X-tier immunity, protected zones, emoji ZWJ preservation, universal UTF-8/UTF-16/UTF-32 stdin & file decoding under CP949 locales, all 7 verify gates, and 4 CLI subcommands`) |
 | Live Dogfooding on [`docs/ai_slop_removal_encyclopedia.md`](./docs/ai_slop_removal_encyclopedia.md) | **Slop Score `56 -> 0`**, active families **`3 -> 0`**, change rate **`0.8%`**, length ratio **`99.8%`**, **`protected_spans` / `lexical_regression` / `epistemic_hedges` / `academic_register` all `PASS`** (see [`docs/dogfood_diff_report.md`](./docs/dogfood_diff_report.md)) |
 
 ---

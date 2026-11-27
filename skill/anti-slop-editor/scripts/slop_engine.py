@@ -18,10 +18,12 @@ Subcommands:
 from __future__ import annotations
 
 import argparse
+import codecs
 from collections import Counter
 from dataclasses import dataclass, field
 import difflib
 import json
+import locale
 import math
 from pathlib import Path
 import re
@@ -30,8 +32,8 @@ import unicodedata
 from typing import Any
 
 
-# Ensure UTF-8 I/O on Windows consoles/pipes
-for _stream in (sys.stdout, sys.stderr):
+# Ensure UTF-8 I/O on Windows consoles/pipes (including stdin)
+for _stream in (sys.stdin, sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         try:
             _stream.reconfigure(encoding="utf-8", errors="replace")
@@ -1630,10 +1632,86 @@ def generate_diff_report(
 # CLI Entry Point
 # ---------------------------------------------------------------------------
 
+def _decode_unicode_bytes(raw: bytes) -> str:
+    """Decode raw bytes across UTF-8 (preserving U+FEFF for scanning), UTF-16/32, or legacy fallbacks."""
+    text: str | None = None
+
+    # 1. Explicit Unicode BOMs (check 4-byte UTF-32 before 2-byte UTF-16)
+    try:
+        if len(raw) >= 4 and len(raw) % 4 == 0 and raw.startswith((codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE)):
+            text = raw.decode("utf-32")
+        elif len(raw) >= 2 and len(raw) % 2 == 0 and raw.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+            text = raw.decode("utf-16")
+        elif raw.startswith(codecs.BOM_UTF8):
+            text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        text = None
+
+    # 2. BOM-less UTF-32 / UTF-16 heuristic when NUL bytes are present
+    if text is None and b"\x00" in raw:
+        if len(raw) >= 4 and len(raw) % 4 == 0:
+            n4 = len(raw) // 4
+            # Valid Unicode codepoints are <= U+10FFFF: top byte is always 0x00, second byte <= 0x10
+            if raw[3::4].count(0) == n4 and all(b <= 0x10 for b in raw[2::4]):
+                try:
+                    text = raw.decode("utf-32-le")
+                except UnicodeDecodeError:
+                    pass
+            elif raw[0::4].count(0) == n4 and all(b <= 0x10 for b in raw[1::4]):
+                try:
+                    text = raw.decode("utf-32-be")
+                except UnicodeDecodeError:
+                    pass
+        if text is None and len(raw) >= 4 and len(raw) % 2 == 0:
+            even_nulls = raw[0::2].count(0)
+            odd_nulls = raw[1::2].count(0)
+            threshold = max(2, len(raw) // 8)
+            if odd_nulls >= threshold and odd_nulls > even_nulls:
+                try:
+                    text = raw.decode("utf-16-le")
+                except UnicodeDecodeError:
+                    pass
+            elif even_nulls >= threshold and even_nulls > odd_nulls:
+                try:
+                    text = raw.decode("utf-16-be")
+                except UnicodeDecodeError:
+                    pass
+
+    # 3. Strict UTF-8
+    if text is None:
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            pass
+
+    # 4. Locale & common CJK / Western legacy fallbacks
+    if text is None:
+        pref = locale.getpreferredencoding(False)
+        candidates: list[str] = []
+        for enc in (pref, "cp949", "euc-kr", "gb18030", "shift_jis", "cp1252"):
+            if enc and enc.lower() not in {c.lower() for c in candidates}:
+                candidates.append(enc)
+        for enc in candidates:
+            try:
+                text = raw.decode(enc)
+                break
+            except (LookupError, UnicodeDecodeError):
+                continue
+
+    # 5. Guaranteed non-crashing fallback
+    if text is None:
+        text = raw.decode("utf-8", errors="replace")
+
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
 def _read_input(path_arg: str) -> str:
     if path_arg == "-":
-        return sys.stdin.read()
-    return Path(path_arg).read_text(encoding="utf-8")
+        buf = getattr(sys.stdin, "buffer", None)
+        if buf is not None:
+            return _decode_unicode_bytes(buf.read())
+        return sys.stdin.read().replace("\r\n", "\n").replace("\r", "\n")
+    return _decode_unicode_bytes(Path(path_arg).read_bytes())
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -350,6 +351,45 @@ class TestCLISubcommands(unittest.TestCase):
             self.assertIn("# Anti-Slop Diff & Metrics Report", rep_txt)
             self.assertIn("## 1. Before vs. After Metrics", rep_txt)
             self.assertIn("### [1]", rep_txt)
+
+    def test_universal_unicode_cli_stdin_and_encodings(self) -> None:
+        script = str(SCRIPT_DIR / "slop_engine.py")
+        sample = (
+            "이 기능은 단순히 빠른 것이 아니라 사용자 여정의 렌즈를 통해 혁신을 이룹니다.\u202f 🚀𠮷\n"
+            "도움이 되셨길 바랍니다.\n"
+        )
+        cp949_env = os.environ.copy()
+        cp949_env["PYTHONUTF8"] = "0"
+        cp949_env["PYTHONIOENCODING"] = "cp949:replace"
+
+        # 1. UTF-8 piped to stdin under CP949 locale must preserve full Unicode & detect all families
+        r_stdin = subprocess.run(
+            [sys.executable, script, "scan", "-", "--genre", "blog", "--json"],
+            input=sample.encode("utf-8"),
+            capture_output=True,
+            env=cp949_env,
+            check=True,
+        )
+        data_stdin = json.loads(r_stdin.stdout.decode("utf-8"))
+        self.assertEqual(data_stdin["language"], "ko")
+        self.assertEqual(data_stdin["invisible_unicode"]["total"], 1)
+        self.assertEqual(data_stdin["route_hint"], "heavy")
+
+        # 2. UTF-16 LE/BE and UTF-32 files produce identical scan results
+        with tempfile.TemporaryDirectory() as tmp:
+            for enc in ("utf-16", "utf-16-be", "utf-32"):
+                fp = Path(tmp) / f"sample_{enc}.md"
+                fp.write_bytes(sample.encode(enc))
+                r_file = subprocess.run(
+                    [sys.executable, script, "scan", str(fp), "--genre", "blog", "--json"],
+                    capture_output=True,
+                    env=cp949_env,
+                    check=True,
+                )
+                data_file = json.loads(r_file.stdout.decode("utf-8"))
+                self.assertEqual(data_file["invisible_unicode"]["total"], 1, enc)
+                self.assertEqual(data_file["route_hint"], "heavy", enc)
+                self.assertEqual(data_file["hit_count"], data_stdin["hit_count"], enc)
 
 
 if __name__ == "__main__":
