@@ -45,7 +45,7 @@ anti-slop-editor/
 │   └── anti-slop-editor/                          # Ready-to-install Antigravity Skill
 │       ├── SKILL.md
 │       ├── references/
-│       │   ├── architecture-and-genres.md         # 3-pass structural repair, 6 venue rules, Identity-First
+│       │   ├── architecture-and-genres.md         # 3-pass structural repair, 6 venue rules + spoken-script handoff, Identity-First
 │       │   ├── lang-ko.md                         # Korean tells + context-checked P1/P2 lexical traps
 │       │   ├── lang-en.md                         # English Tier A-D tells + 50-point quality rubric
 │       │   ├── lang-ja-zh.md                      # Japanese meiseki/textlint + ZH-CN 5.2M-char & ZH-TW rules
