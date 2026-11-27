@@ -85,7 +85,7 @@ Identify the requested operation before reading references:
 4. **Load voice/persona distillation template** if the user supplies writing samples or asks to clone/save their style:
    - [references/voice-persona-template.md](./references/voice-persona-template.md)
 
-5. **Spoken scripts, narration, & voiceover handoff:** When editing dialogue, narration, podcast, or TTS scripts, follow Section `3.7` of [references/architecture-and-genres.md](./references/architecture-and-genres.md) (scrub written-prose AI slop and pass `verify` first, then hand off to companion skill `voice-directing-mastery` (`~/.gemini/config/skills/voice-directing-mastery/SKILL.md`) in **`production` mode** for vocal casting, cadence, and engine-specific performance tags).
+5. **Spoken scripts, narration, & voiceover handoff (optional):** When editing dialogue, narration, podcast, or TTS scripts, follow Section `3.7` of [references/architecture-and-genres.md](./references/architecture-and-genres.md) (scrub written-prose AI slop and pass `verify` first; if companion skill `voice-directing-mastery` (`~/.gemini/config/skills/voice-directing-mastery/SKILL.md`) is installed, optionally hand off to it in **`production` mode** for vocal casting and engine tags, otherwise finalize the clean spoken script directly).
 
 ---
 
